@@ -1,25 +1,123 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: "Course Project"
+author: "Marwin Solomon"
+date: "7/18/2020"
 output: 
-  html_document:
-    keep_md: true
+  html_document: 
+    keep_md: yes
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+```
 
 
 ## Loading and preprocessing the data
+```{r}
+setwd("C:\\Users\\MARK\\Desktop\\Marwin Documents\\Coursera Courses\\5. Reproducible Research\\Course Project 1")
+data<-read.csv("./activity.csv",sep=",",header=TRUE)
+dates<-split(data,data$date)
+no_steps<-sapply(dates,function(x){sum(x[,1],na.rm=TRUE)})
+no_steps
+hist(no_steps,ylim=c(0,30))
+```
 
 
 
 ## What is mean total number of steps taken per day?
-
+```{r}
+mean(no_steps)
+median(no_steps)
+```
 
 
 ## What is the average daily activity pattern?
+```{r}
+data1<-transform(data,interval=factor(interval))
+str(data1)
 
+intervals<-split(data1,data1$interval)
+
+avg_int_steps<-sapply(intervals,function(x){mean(x[,1],na.rm=TRUE)})
+str(avg_int_steps)
+length(avg_int_steps)
+interval_no<-seq(1:288)
+plot(interval_no,avg_int_steps,type="l")
+max(avg_int_steps)
+which.max(avg_int_steps)
+
+```
 
 
 ## Imputing missing values
+```{r}
+sum(is.na(data))
 
+data2<-as.data.frame(avg_int_steps)
+head(data2)
+data2<-mutate(data2,interval=rownames(data2))
+data2
+nrow(data2)
+
+int<-as.numeric(data2$interval)
+
+for(j in 1:288){
+		for(i in 1:61){
+			if(is.na(data1[data1$interval==int[j],]$steps[i])){
+		data1[data1$interval==int[j],]$steps[i]<-data2[data2$interval==int[j],]$avg_int_steps
+			}	
+		}
+	}
+head(data1,100)
+
+data3<-transform(data1,interval=factor(interval))
+imputedata<-split(data3,data3$date)
+head(imputedata)
+updated_steps<-sapply(imputedata,function(x){sum(x[,1])})
+updated_steps
+hist(updated_steps,ylim=c(0,40))
+
+mean(updated_steps)
+median(updated_steps)
+
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+data4<-mutate(data3,Day=weekdays(date(data3$date)))
+head(data4,500)
+data4<-mutate(data4,type=factor(1*(Day=="Sunday" | Day=="Saturday"),labels=c("Weekday","Weekend")))
+head(data4,500)
+str(data4)
+
+weekdaysdata<-data4[data4$type=="Weekday",]
+head(weekdaysdata)
+weekdaysdata<-transform(weekdaysdata,interval=factor(interval))
+str(weekdaysdata)
+
+updated_intervals_wd<-split(weekdaysdata,weekdaysdata$interval)
+
+updated_avg_int_steps_wd<-sapply(updated_intervals_wd,function(x){mean(x[,1],na.rm=TRUE)})
+str(updated_avg_int_steps_wd)
+length(updated_avg_int_steps_wd)
+
+weekenddata<-data4[data4$type=="Weekend",]
+head(weekenddata)
+weekenddata<-transform(weekenddata,interval=factor(interval))
+str(weekenddata)
+
+updated_intervals_we<-split(weekenddata,weekenddata$interval)
+
+updated_avg_int_steps_we<-sapply(updated_intervals_we,function(x){mean(x[,1],na.rm=TRUE)})
+str(updated_avg_int_steps_we)
+length(updated_avg_int_steps_we)
+interval_no<-seq(1:288)
+
+par(mfrow=c(2,1),mar=c(3,3,2,1))
+plot(interval_no,updated_avg_int_steps_wd,type="l")
+plot(interval_no,updated_avg_int_steps_we,type="l")
+
+```
